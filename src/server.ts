@@ -28,55 +28,79 @@ app.get('/cars/:id', async (req, res) => {
 
 app.post('/cars', async (req, res)=>{
     const car = {
-      name: req.body.name,
+      brand: req.body.brand,
+      rating: req.body.rating,
+      carName: req.body.carName,
+      imgUrl: req.body.imgUrl,
       model: req.body.model,
-      maker: req.body.maker,
       price: req.body.price,
-      photo: req.body.photo,
-      description: req.body.description,
-      costToRun: req.body.costToRun
+      speed: req.body.speed,
+      gps: req.body.gps,
+      seatType: req.body.seatType,
+      automatic: req.body.automatic,
+      description: req.body.description
     }
     let errors: string[] = []
   
-      if (typeof req.body.name !== 'string') {
-          errors.push('Name of Car not given!')
+      if (typeof req.body.brand !== 'string') {
+          errors.push('Brand of Car not given!')
         }
 
-      if (typeof req.body.model !== 'string') {
+      if (typeof req.body.rating !== 'number') {
+          errors.push('Rating of car not given or wrong!')
+        }
+
+      if(typeof req.body.carName  !=='string') {
+          errors.push('Car name not given or wrong!')
+        }
+
+      if(typeof req.body.imgUrl  !=='string') {
+          errors.push('Image of car not given or wrong!')
+        }
+
+      if(typeof req.body.model  !=='string') {
           errors.push('Model of car not given or wrong!')
-        }
-
-      if(typeof req.body.maker  !=='string') {
-          errors.push('Maker of car not given or wrong!')
         }
 
       if(typeof req.body.price  !=='number') {
           errors.push('Price of car not given or wrong!')
+        }    
+
+      if(typeof req.body.speed  !=='string') {
+          errors.push('Spped of car not given or wrong!')
         }
 
-      if(typeof req.body.photo  !=='string') {
-          errors.push('Photo of car not given or wrong!')
+      if(typeof req.body.gps  !=='string') {
+          errors.push('Gps of car not given or wrong!')
+        }
+
+      if(typeof req.body.seatType  !=='string') {
+          errors.push('Seat type of car not given or wrong!')
+        }
+
+      if(typeof req.body.automatic  !=='string') {
+          errors.push('Transmiton of car not given or wrong!')
         }
 
       if(typeof req.body.description  !=='string') {
           errors.push('Description of car not given or wrong!')
         }    
 
-      if(typeof req.body.costToRun  !=='string') {
-          errors.push('Cost to run of car not given or wrong!')
-        }    
-
       if( errors.length === 0)  {
         try{
             const newCar = await prisma.cars.create({
               data: {
-                name: car.name,
-                model :car.model,
-                maker:car.maker,
+                brand: car.brand,
+                rating: car.rating,
+                carName: car.carName,
+                imgUrl: car.imgUrl,
+                model: car.model,
                 price: car.price,
-                photo: car.photo,
-                description: car.description,
-                costToRun: car.costToRun
+                speed: car.speed,
+                gps: car.gps,
+                seatType: car.seatType,
+                automatic: car.automatic,
+                description: car.description
               }
             })
             res.send(newCar)
