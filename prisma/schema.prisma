@@ -17,6 +17,7 @@ model User {
   image    String?
   password String
   reviews  Review[]
+  cars     Cars[]
 }
 
 model Cars {
@@ -32,6 +33,8 @@ model Cars {
   seatType    String
   automatic   String
   description String
+  User        User?  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId      Int?
 }
 
 model Review {

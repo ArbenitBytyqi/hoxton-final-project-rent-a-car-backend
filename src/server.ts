@@ -1,12 +1,105 @@
-import express from 'express'
-import cors from 'cors'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client";
+import express from "express";
+import cors from "cors";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import env from "dotenv";
 
-const prisma = new PrismaClient()
-const app = express()
-app.use(cors())
-app.use(express.json())
-const port = 5000
+env.config();
+const JWT_SECRET = process.env.JWT_SECRET!;
+
+const prisma = new PrismaClient();
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const port = 4000;
+
+function generateToken(id: number) {
+  const token = jwt.sign({ id }, JWT_SECRET, { expiresIn: "1h" });
+  return token;
+}
+
+async function getCurrentUser(token: string) {
+  const decodedData = jwt.verify(token, JWT_SECRET);
+  const user = await prisma.user.findUnique({
+    where: {
+      // @ts-ignore
+      id: Number(decodedData.id),
+    },
+    include: {
+      cars: true
+    },
+  });
+  return user;
+}
+
+//signup
+
+app.post("/signup", async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: {email:req.body.email},
+    });
+    if (user) {
+      return res.status(401).send({ message: "User already exists" });
+    } else {
+      const newUser = await prisma.user.create({
+        data: {
+          email: req.body.email,
+          name: req.body.name,
+          password: bcrypt.hashSync(req.body.password, 10),
+          
+        },
+        include: {
+          cars: true
+        },
+      });
+      const token = generateToken(newUser.id);
+      res.send({newUser, token});
+    }
+  } catch (error) {
+    //@ts-ignore
+    res.status(451).send({ error: error.message });
+  }
+});
+
+// //log-in user
+app.post("/login", async (req, res) => {
+ 
+  const existingUser = await prisma.user.findUnique({
+    where: { email: req.body.email },
+  });
+
+  if (existingUser && bcrypt.compareSync(req.body.password, existingUser.password)) {
+    const token = generateToken(existingUser.id);
+    res.send({ existingUser, token });
+
+  } else {
+    res.status(401).send({ message: "Invalid credentials." });
+  }
+});
+
+// // Get/validate the current user
+app.get("/validate", async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+
+    if (!token) {
+      return res.status(400).send({ error: "You are not signed in!" });
+    } else {
+      const user = await getCurrentUser(token);
+      if (user) {
+        res.send({ user, token: generateToken(user.id) });
+      } else {
+        res.status(400).send({ error: "Please try to sign in again!" });
+      }
+    }
+  } catch (error) {
+    // @ts-ignore
+    res.status(500).send({ error: error.message });
+  }
+});
 
 // CARS
 
