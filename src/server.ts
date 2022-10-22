@@ -1,62 +1,92 @@
-import { PrismaClient } from "@prisma/client";
 import express from "express";
 import cors from "cors";
+import { PrismaClient } from "@prisma/client";
+import env from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import env from "dotenv";
 
 env.config();
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 const prisma = new PrismaClient();
 const app = express();
-app.use(cors());
+
 app.use(express.json());
+app.use(cors());
 
-const port = 4000;
+const port = Number(process.env.PORT);
 
-function generateToken(id: number) {
-  const token = jwt.sign({ id }, JWT_SECRET, { expiresIn: "1h" });
-  return token;
+const SECRET = process.env.SECRET!;
+
+function getToken(id: number) {
+  return jwt.sign({ id }, SECRET, { expiresIn: "2h" });
 }
 
 async function getCurrentUser(token: string) {
-  const decodedData = jwt.verify(token, JWT_SECRET);
+  const decodedData = jwt.verify(token, SECRET);
   const user = await prisma.user.findUnique({
     where: {
       // @ts-ignore
       id: Number(decodedData.id),
     },
     include: {
-      cars: true
+      cars: true,
     },
   });
   return user;
 }
 
-//signup
+app.get("/users", async (req, res) => {
+  const users = await prisma.user.findMany({
+    include: {
+      cars: true,
+    },
+  });
+  res.send(users);
+});
+
+app.get("/users/:id", async (req, res) => {
+  const { id } = req.params;
+  const user = await prisma.user.findUnique({
+    where: {
+      id: Number(id),
+    },
+    include: {
+      cars: true,
+    },
+  });
+  res.send(user);
+});
 
 app.post("/signup", async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: {email:req.body.email},
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          {
+            email: req.body.email,
+          },
+          {
+            name: req.body.name,
+          },
+        ],
+      },
     });
-    if (user) {
+    if (users.length > 0) {
       return res.status(401).send({ message: "User already exists" });
     } else {
-      const newUser = await prisma.user.create({
+      const user = await prisma.user.create({
         data: {
           email: req.body.email,
           name: req.body.name,
           password: bcrypt.hashSync(req.body.password, 10),
-          
+          image: req.body.image
         },
         include: {
-          cars: true
+          cars: true,
         },
       });
-      const token = generateToken(newUser.id);
-      res.send({newUser, token});
+      const token = getToken(user.id);
+      res.send({user, token});
     }
   } catch (error) {
     //@ts-ignore
@@ -64,42 +94,48 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// //log-in user
-app.post("/login", async (req, res) => {
- 
-  const existingUser = await prisma.user.findUnique({
-    where: { email: req.body.email },
-  });
+app.post("/signin", async (req, res) => {
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        {
+          email: req.body.login,
+        },
+        {
+          name: req.body.login,
+        },
+      ],
+    },
+    include: {
+      cars: true,
+    },
+  })
 
-  if (existingUser && bcrypt.compareSync(req.body.password, existingUser.password)) {
-    const token = generateToken(existingUser.id);
-    res.send({ existingUser, token });
+  const user = users[0];
 
+  if(user && bcrypt.compareSync(req.body.password, user.password)) {
+    const token = getToken(user.id);
+    res.send({ user, token });
   } else {
-    res.status(401).send({ message: "Invalid credentials." });
+    res.status(401).send({ message: "Invalid credentials. Email or password is incorrect!" });
   }
 });
 
-// // Get/validate the current user
-app.get("/validate", async (req, res) => {
-  try {
-    const token = req.headers.authorization;
-
-    if (!token) {
-      return res.status(400).send({ error: "You are not signed in!" });
-    } else {
-      const user = await getCurrentUser(token);
-      if (user) {
-        res.send({ user, token: generateToken(user.id) });
-      } else {
-        res.status(400).send({ error: "Please try to sign in again!" });
-      }
+app.get('/validate', async (req, res) => {
+    try {
+        if(req.headers.authorization){
+            const user = await getCurrentUser(req.headers.authorization);
+            //@ts-ignore
+            const token = getToken(user.id);
+            res.send({user, token});
+        } else {
+            res.status(401).send({error: "No token provided"})
+        }
+    } catch (error) {
+        //@ts-ignore
+        res.status(404).send({ error: error.message });
     }
-  } catch (error) {
-    // @ts-ignore
-    res.status(500).send({ error: error.message });
-  }
-});
+})
 
 // CARS
 
@@ -358,6 +394,23 @@ app.delete('/reviews/:id', async (req, res) => {
         res.status(400).send({ error: 'Review could not be deleted!' })
       }
 })
+
+//Get user by name
+app.get("/user/user/:name", async (req, res) => {
+  try {
+    const { name } = req.params;
+
+    const user = await prisma.user.findMany({
+      where: { name: { contains: name } },
+      include: { cars: true },
+    });
+
+    res.send(user);
+  } catch (error) {
+    // @ts-ignore
+    res.status(500).send({ error: error.message });
+  }
+});
 
 // GENERAL
 
