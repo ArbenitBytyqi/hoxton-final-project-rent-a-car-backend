@@ -99,10 +99,10 @@ app.post("/signin", async (req, res) => {
     where: {
       OR: [
         {
-          email: req.body.login,
+          email: req.body.email,
         },
         {
-          name: req.body.login,
+          name: req.body.name,
         },
       ],
     },
