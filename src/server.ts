@@ -345,8 +345,7 @@ app.post('/reviews', async (req, res)=>{
     const review = {
       userId: req.body.userId,
       rating: req.body.rating,
-      content: req.body.content,
-      createdAt: req.body.createdAt
+      content: req.body.content
     }
     let errors: string[] = []
   
@@ -362,18 +361,13 @@ app.post('/reviews', async (req, res)=>{
           errors.push('Review not given or wrong!')
         }
 
-      if(typeof req.body.createdAt  !=='number') {
-          errors.push('Date not given or wrong!')
-        }    
-
       if( errors.length === 0)  {
         try{
             const newReview = await prisma.review.create({
               data: {
                 userId: req.body.userId,
                 rating: req.body.rating,
-                content: req.body.content,
-                createdAt: req.body.createdAt
+                content: req.body.content
               }
             })
             res.send(newReview)

@@ -38,10 +38,9 @@ model Cars {
 }
 
 model Review {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId    Int
-  rating    Int
-  content   String
-  createdAt DateTime @default(now())
+  id      Int    @id @default(autoincrement())
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId  Int
+  rating  Int
+  content String
 }
