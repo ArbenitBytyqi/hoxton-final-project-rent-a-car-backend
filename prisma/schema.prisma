@@ -43,4 +43,6 @@ model Review {
   userId  Int
   rating  Int
   content String
+  imgUrl  String
+  name    String
 }

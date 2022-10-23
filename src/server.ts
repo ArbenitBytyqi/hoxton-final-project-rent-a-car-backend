@@ -345,7 +345,9 @@ app.post('/reviews', async (req, res)=>{
     const review = {
       userId: req.body.userId,
       rating: req.body.rating,
-      content: req.body.content
+      content: req.body.content,
+      imgUrl: req.body.imgUrl,
+      name: req.body.name
     }
     let errors: string[] = []
   
@@ -361,13 +363,19 @@ app.post('/reviews', async (req, res)=>{
           errors.push('Review not given or wrong!')
         }
 
+      if(typeof req.body.imgUrl  !=='string') {
+          errors.push('Image not given or wrong!')
+        }  
+
       if( errors.length === 0)  {
         try{
             const newReview = await prisma.review.create({
               data: {
                 userId: req.body.userId,
                 rating: req.body.rating,
-                content: req.body.content
+                content: req.body.content,
+                imgUrl: req.body.imgUrl,
+                name: req.body.name
               }
             })
             res.send(newReview)
